@@ -1,0 +1,289 @@
+[#assign className=table.className  /]
+[#assign classNameLower = table.classNameFirstLower  /]
+${gg.setOverride(true)}[#t /]
+${gg.setOutputFile(generateXmlPath+"/${className}${generateXmlName}.xml")}[#t  /]
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="${daoPackage}.${dataSourceName}.${className}${daoName}" >
+    <resultMap id="BaseResultMap" type="${poPackage}.${dataSourceName}.${className}${poName}" >
+        <id column="id" property="id"/>
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+[#list table.columns as field]
+[#if field.asType=='Enum']
+        <result column="${field.sqlName}" property="${field.columnNameFirstLower}" />
+[#elseif field.asType=='Object']
+[#else]
+        <result column="${field.sqlName}" property="${field.columnNameFirstLower}" />
+[/#if]
+[/#list]
+    </resultMap>
+
+
+    <sql id="Table_Name" >
+        ${table.sqlName}
+    </sql>
+
+    <sql id="Base_Column" >
+        [@fieldList  /]
+    </sql>
+
+    <sql id="Base_Column_List" >
+        id,create_time,update_time,
+        <trim suffixOverrides=",">
+            <include refid="Base_Column"/>
+        </trim>
+    </sql>
+
+    <sql id="Selective_Prefix_Field" >
+        <if test="selectivePo.id!=null">id,</if>
+        <if test="selectivePo.createTime!=null">create_time,</if>
+        <if test="selectivePo.updateTime!=null">update_time,</if>
+        [@fieldList "selectivePo." true /]
+    </sql>
+
+
+    <sql id="Field_Eq_Property" >
+        [@fieldPropertyList /]
+    </sql>
+
+    <sql id="Selective_Field_Eq_Property" >
+        [@fieldPropertyList "selectivePo." /]
+    </sql>
+
+    <sql id="Where_Field_Eq_Property" >
+        [@fieldPropertyList "wherePo." /]
+    </sql>
+
+    <sql id="Where_In_Sql" >
+        [@selectIdsSql /]
+    </sql>
+
+
+    <sql id="Selective_Where_In_Sql" >
+        [@selectIdsSql "wherePo." /]
+    </sql>
+
+    <insert id="insertSelective" useGeneratedKeys="true" keyProperty="id">
+        insert into
+        <include refid="Table_Name"/>
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+         create_time,update_time,
+        [@fieldList "" true /]
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+         now(),now(),
+        [@propertyList "" true /]
+        </trim>
+    </insert>
+
+
+    <insert id="insertBatch">
+        insert into
+        <include refid="Table_Name"/>
+        (create_time,update_time,
+        <trim suffixOverrides=",">
+            <include refid="Base_Column"/>)
+        </trim>
+        values
+        <foreach item="wherePo" collection="list" separator=",">
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+        now(),now(),
+        [@propertyList "wherePo." /]
+        </trim>
+        </foreach>
+    </insert>
+
+
+[#noparse]
+
+    <sql id="Where_Sql" >
+        where 1 = 1
+        <include refid="Where_In_Sql"></include>
+        <include refid="Field_Eq_Property"><property name="joinStr" value="and"/></include>
+    </sql>
+
+
+
+    <!-- update只提供根绝id或者ids 作in操作的批量更新 -->
+    <update id="updateSelective">
+        update <include refid="Table_Name" />
+        <set>
+            update_time = now()
+            <include refid="Field_Eq_Property"><property name="joinStr" value=","/></include>
+        </set>
+        where 1 = 1
+        <include refid="Where_In_Sql"></include>
+    </update>
+
+
+    <select id="getOneByWhere" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from <include refid="Table_Name" />
+        <include refid="Where_Sql"></include>
+    </select>
+
+
+    <select id="listByWhere" resultMap="BaseResultMap" >
+        select
+        <include refid="Base_Column_List" />
+        from <include refid="Table_Name" />
+        <include refid="Where_Sql"></include>
+        limit #{offset},#{size}
+    </select>
+
+
+    <select id="countByWhere" resultType="java.lang.Integer">
+        select count(1) from <include refid="Table_Name" />
+        <include refid="Where_Sql"></include>
+    </select>
+
+
+    <select id="maxIdByWhere" resultType="java.lang.Integer">
+        SELECT max(id) FROM <include refid="Table_Name"/>
+        <include refid="Where_Sql"></include>
+    </select>
+
+
+    <!-- 比较危险，慎用 -->
+    <delete id="deleteByWhere">
+        delete from <include refid="Table_Name" />
+        <include refid="Where_Sql"></include>
+    </delete>
+
+
+    <sql id="Selective_Where_Sql" >
+        where 1 = 1
+        <include refid="Selective_Where_In_Sql"></include>
+        <include refid="Where_Field_Eq_Property"><property name="joinStr" value="and"/></include>
+    </sql>
+
+
+    <update id="updateSelectiveByWhere">
+        update <include refid="Table_Name" />
+        <set>
+            update_time = now()
+            <include refid="Selective_Field_Eq_Property"><property name="joinStr" value=","/></include>
+        </set>
+        <include refid="Selective_Where_Sql"></include>
+    </update>
+
+
+    <select id="selectiveOneByWhere" resultMap="BaseResultMap">
+        select
+        <trim suffixOverrides=",">
+            <include refid="Selective_Prefix_Field"/>
+        </trim>
+        from <include refid="Table_Name" />
+        <include refid="Selective_Where_Sql"></include>
+    </select>
+
+
+    <select id="selectiveListByWhere" resultMap="BaseResultMap" >
+        select
+        <trim suffixOverrides=",">
+            <include refid="Selective_Prefix_Field"/>
+        </trim>
+        from <include refid="Table_Name" />
+        <include refid="Selective_Where_Sql"></include>
+        limit #{wherePo.offset},#{wherePo.size}
+    </select>
+[/#noparse]
+</mapper>
+
+[#macro mapperElPrefix value prefix]
+    [#if prefix?default("")?trim?length gt 1]
+        ${r"#{"}${prefix}${value}} [#t /]
+    [#else]
+        ${r"#{"}${value}}[#t /]
+    [/#if]
+[/#macro]
+
+[#macro mapperKvPrefix k v prefix]
+    [#if prefix?default("")?trim?length gt 1]
+        ${r"${joinStr"}} ${k}=${r"#{"}${prefix}${v}}[#t /]
+    [#else]
+        ${r"${joinStr"}} ${k}=${r"#{"}${v}}[#t /]
+    [/#if]
+[/#macro]
+
+[#macro fieldList prefix="" hasIf=false]
+    [#if (hasIf)]
+        [#list table.columns as field]
+        [#if field.asType=='String']
+        <if test="${prefix!}${field.columnNameFirstLower} != null and ${prefix!}${field.columnNameFirstLower} != ''" >${field.sqlName}[#if field_has_next],[/#if]</if>
+        [#elseif field.asType=='Object']
+        [#elseif field.asType=='Enum']
+        <if test="${prefix!}${field.columnNameFirstLower}!=null">${field.sqlName}[#if field_has_next],[/#if]</if>
+        [#else]
+        <if test="${prefix!}${field.columnNameFirstLower}!=null">${field.sqlName}[#if field_has_next],[/#if]</if>
+        [/#if]
+        [/#list]
+    [#else]
+        [#list table.columns as field]
+        [#if field.asType=='Enum']
+        ${field.sqlName}[#if field_has_next],[/#if]
+        [#elseif field.asType=='Object']
+        [#else]
+        ${field.sqlName}[#if field_has_next],[/#if]
+        [/#if]
+        [/#list]
+    [/#if]
+[/#macro]
+
+
+[#macro propertyList prefix="" hasIf=false]
+    [#if (hasIf)]
+        [#list table.columns as field]
+        [#if field.asType=='String']
+        <if test="${prefix!}${field.columnNameFirstLower} != null and ${prefix!}${field.columnNameFirstLower} != ''" >[@mapperElPrefix field.columnNameFirstLower prefix /][#if field_has_next],[/#if]</if>
+        [#elseif field.asType=='Object']
+        [#else]
+        <if test="${prefix!}${field.columnNameFirstLower}!=null">[@mapperElPrefix field.columnNameFirstLower prefix /][#if field_has_next],[/#if]</if>
+        [/#if]
+        [/#list]
+    [#else]
+        [#list table.columns as field]
+        [#if field.asType=='Object']
+        [#else]
+        [@mapperElPrefix field.columnNameFirstLower prefix /][#if field_has_next],[/#if]
+        [/#if]
+        [/#list]
+    [/#if]
+[/#macro]
+
+
+[#macro fieldPropertyList prefix=""]
+    [#list table.columns as field]
+        [#if field.asType=='String']
+        <if test="${prefix!}${field.columnNameFirstLower} != null and ${prefix!}${field.columnNameFirstLower} != ''"> [@mapperKvPrefix field.sqlName field.columnNameFirstLower prefix /][#if field_has_next][/#if]</if>
+        [#elseif field.asType=='Enum']
+        <if test="${prefix!}${field.columnNameFirstLower}!=null"> [@mapperKvPrefix "${field.sqlName}" field.columnNameFirstLower prefix /][#if field_has_next][/#if]</if>
+        [#elseif field.asType=='Object']
+        [#else]
+        <if test="${prefix!}${field.columnNameFirstLower}!=null"> [@mapperKvPrefix field.sqlName field.columnNameFirstLower prefix /][#if field_has_next][/#if]</if>
+        [/#if]
+    [/#list]
+[/#macro]
+
+
+[#macro selectIdsSql prefix=""]
+        <if test="${prefix!}id != null">
+        and id = ${r"#{"}${prefix!}id}
+        </if>
+        <if test="${prefix!}ids != null and ${prefix!}ids.size() > 0" >
+            and
+            <choose>
+                <when test="${prefix!}queryListFieldName != null  and ${prefix!}queryListFieldName !=''">${r"${"}${prefix!}queryListFieldName}</when>
+                <otherwise>id</otherwise>
+            </choose>
+            in
+            <foreach collection="${prefix!}ids" item="item" open="(" separator="," close=")">
+            ${r"#{item}"}
+            </foreach>
+        </if>
+        <if test="${prefix!}otherWhere != null and ${prefix!}otherWhere != ''">
+        ${r"${"}${prefix!}otherWhere}
+        </if>
+[/#macro]
