@@ -134,13 +134,13 @@ ${gg.setOutputFile(generateXmlPath+"/${className}${generateXmlName}.xml")}[#t  /
     </select>
 
 
-    <select id="countByWhere" resultType="java.lang.Integer">
+    <select id="countByWhere" resultType="java.lang.Long">
         select count(1) from <include refid="Table_Name" />
         <include refid="Where_Sql"></include>
     </select>
 
 
-    <select id="maxIdByWhere" resultType="java.lang.Integer">
+    <select id="maxIdByWhere" resultType="java.lang.Long">
         SELECT max(id) FROM <include refid="Table_Name"/>
         <include refid="Where_Sql"></include>
     </select>

@@ -32,8 +32,8 @@ CREATE TABLE ${table.sqlName}
     ${field.sqlName} DECIMAL(10,2) COMMENT '${(field.remarks)!}',
    [/#if]
 [/#list]
-    create_time DATETIME NULL COMMENT '创建时间',
-    update_time DATETIME NULL COMMENT '更改时间'
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更改时间'
     -- UNIQUE INDEX `uk_field1_field2` (`field1`, `field2`),
     -- INDEX `idx_field1` (`field1`),
-)COMMENT='${(table.remarks)!}' ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci AUTO_INCREMENT=1;
+)COMMENT='${(table.remarks)!}' ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci AUTO_INCREMENT=1;
